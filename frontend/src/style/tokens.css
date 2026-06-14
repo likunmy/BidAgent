@@ -1,0 +1,26 @@
+:root {
+  /* Primary palette */
+  --color-navy: #0F1B2D;
+  --color-navy-light: #1A2A42;
+  --color-vermillion: #C73B2B;
+  --color-vermillion-hover: #D94A3A;
+  --color-vermillion-light: #FDE8E5;
+
+  /* Surfaces */
+  --color-paper: #F5F2ED;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E0D8;
+  --color-border-light: #F0EDE7;
+
+  /* Text */
+  --color-text: #1A1A1A;
+  --color-text-secondary: #6B6B6B;
+  --color-text-tertiary: #9C9C9C;
+
+  /* Layout */
+  --sidebar-width: 220px;
+  --header-height: 48px;
+  --content-max-width: 1200px;
+  --card-radius: 8px;
+  --button-radius: 6px;
+}

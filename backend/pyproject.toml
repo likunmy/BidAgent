@@ -14,4 +14,6 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "python-dotenv>=1.1.0",
     "markitdown[docx,pdf]>=0.1.0",
+    "python-docx>=1.1.0",
+    "pillow>=10.0.0",
 ]

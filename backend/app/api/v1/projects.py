@@ -28,9 +28,9 @@ def update_project(project_id: int, data: ProjectUpdate, db: Session = Depends(g
     return project_service.update_project(project_id, data, db)
 
 
-@router.get("/{project_id}/requirements")
-def get_project_requirements(project_id: int, db: Session = Depends(get_db)):
-    return file_service.get_project_requirements(project_id, db)
+@router.get("/{project_id}/missing-infos")
+def get_project_missing_infos(project_id: int, db: Session = Depends(get_db)):
+    return file_service.get_project_missing_infos(project_id, db)
 
 
 @router.delete("/{project_id}")

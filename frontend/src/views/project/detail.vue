@@ -75,36 +75,29 @@
             <div class="section-head">
               <div class="section-head-left">
                 <span class="section-title">缺失信息清单</span>
-                <span class="section-count">{{ reqCompleted }}/{{ requirements.length }}</span>
+                <span class="section-count">{{ missingItems.length }}</span>
               </div>
             </div>
 
-            <div v-if="requirements.length === 0" class="req-loading">
-              <n-spin size="small" />
+            <div v-if="missingItems.length === 0" class="req-empty">
+              <n-icon size="24" color="#22A67E"><CheckmarkCircle /></n-icon>
+              <span>暂无缺失信息</span>
             </div>
 
             <div v-else class="req-list">
               <div
-                v-for="req in requirements"
-                :key="req.id"
+                v-for="item in missingItems"
+                :key="item.id"
                 class="req-item"
-                :class="'req-' + req.status"
               >
                 <div class="req-status-icon">
-                  <n-icon v-if="req.status === 'completed'" size="16" color="#22A67E">
-                    <CheckmarkCircle />
-                  </n-icon>
-                  <n-icon v-else size="16" color="#E68A2E">
-                    <AlertCircle />
-                  </n-icon>
+                  <n-icon size="16" color="#E68A2E"><AlertCircle /></n-icon>
                 </div>
                 <div class="req-body">
-                  <span class="req-name">{{ req.name }}</span>
-                  <span class="req-desc">{{ req.description }}</span>
+                  <span class="req-name">{{ item.name }}</span>
+                  <span class="req-desc">{{ item.description }}</span>
                 </div>
-                <span class="req-badge" :class="'badge-' + req.status">
-                  {{ req.status === 'completed' ? '已上传' : '缺失' }}
-                </span>
+                <span class="req-badge badge-missing">缺失</span>
               </div>
             </div>
           </div>
@@ -367,7 +360,7 @@ async function handleTenderUpload() {
     message.success('招标文件上传成功')
     showTenderModal.value = false
     tenderFileSelected.value = null
-    fetchRequirements()
+    fetchMissingInfos()
   } catch (e) {
     const detail = e?.response?.data?.detail || e?.message || '未知错误'
     message.error(`上传失败: ${detail}`)
@@ -385,16 +378,15 @@ async function fetchTenderFile() {
   }
 }
 
-// ------- Requirements checklist -------
-const requirements = ref([])
-const reqCompleted = computed(() => requirements.value.filter(r => r.status === 'completed').length)
+// ------- Missing info checklist -------
+const missingItems = ref([])
 
-async function fetchRequirements() {
+async function fetchMissingInfos() {
   try {
-    const res = await request.get(`/projects/${route.params.id}/requirements`)
-    requirements.value = res.data
+    const res = await request.get(`/projects/${route.params.id}/missing-infos`)
+    missingItems.value = res.data
   } catch {
-    requirements.value = []
+    missingItems.value = []
   }
 }
 
@@ -540,8 +532,8 @@ async function handleUpload() {
     selectedFile.value = null
     if (fileInput.value) fileInput.value.value = ''
     submitted.value = false
-    // Refresh requirements checklist
-    fetchRequirements()
+    // Refresh missing info checklist
+    fetchMissingInfos()
   } catch (e) {
     const detail = e?.response?.data?.detail || e?.message || '未知错误'
     message.error(`上传失败: ${detail}`)
@@ -720,7 +712,7 @@ onUnmounted(() => {
 /* =============================================
    Requirements checklist
    ============================================= */
-.req-loading { display: flex; justify-content: center; padding: 24px 0; }
+.req-empty { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 24px 0; color: var(--color-text-tertiary); font-size: 13px; }
 .req-list { display: flex; flex-direction: column; margin-top: 8px; }
 
 .req-item {
