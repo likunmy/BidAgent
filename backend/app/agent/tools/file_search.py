@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.models.file import File
 
 
@@ -30,7 +29,6 @@ def file_search(input_data: FileSearchInput, db: Session) -> FileSearchOutput:
 
     Excludes the tender document's MD file. Supports optional filename filter.
     """
-    uploads = Path(settings.upload_dir)
     query_lower = input_data.query.lower()
 
     # Collect candidate md_paths

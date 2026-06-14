@@ -35,8 +35,8 @@ def _extract_from_docx(source_path: Path, save_dir: Path) -> list[dict]:
                 images.append({
                     "md5": md5,
                     "ext": raw_ext,
-                    "width": w,
-                    "height": h,
+                    "width": img.width,
+                    "height": img.height,
                     "size_bytes": len(data),
                 })
     except Exception:

@@ -2,15 +2,15 @@ import io
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, RGBColor
 from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.agent.tools import image_extractor
-from app.agent.tools.missing_info import MissingItem, store_missing_info, StoreMissingInfoInput
+from app.agent.tools.missing_info import MissingItem, StoreMissingInfoInput, store_missing_info
 from app.core.config import settings
 
 
@@ -51,6 +51,7 @@ class OutputDocxInput(BaseModel):
     project_id: int
     output_filename: str
     sections: list[Section]
+    append_to_existing: bool = False
 
 
 class OutputDocxOutput(BaseModel):
@@ -64,8 +65,18 @@ def output_docx(input_data: OutputDocxInput, db: Session) -> OutputDocxOutput:
     Supports paragraph, image (with AI-controlled size), table, and
     placeholder blocks. Placeholders generate a placeholder image in
     the docx and store a MissingInfo record.
+
+    When append_to_existing is True and the file already exists, opens
+    the existing docx and appends new sections to it.
     """
-    doc = Document()
+    output_dir = Path(settings.upload_dir) / "projects" / str(input_data.project_id) / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / input_data.output_filename
+
+    if input_data.append_to_existing and output_path.exists():
+        doc = Document(str(output_path))
+    else:
+        doc = Document()
     missing_items: list[MissingItem] = []
 
     for section in input_data.sections:
@@ -89,9 +100,6 @@ def output_docx(input_data: OutputDocxInput, db: Session) -> OutputDocxOutput:
                 ))
 
     # Save
-    output_dir = Path(settings.upload_dir) / "projects" / str(input_data.project_id) / "output"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / input_data.output_filename
     doc.save(str(output_path))
 
     # Store missing info

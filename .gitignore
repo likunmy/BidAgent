@@ -1,9 +1,16 @@
 node_modules/
 dist/
 .env
+backend/.env
 __pycache__/
 *.pyc
 .venv/
+.venv
 uploads/
 data/
 .idea/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+*.db
+.DS_Store

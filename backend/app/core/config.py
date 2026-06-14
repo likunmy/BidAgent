@@ -14,5 +14,8 @@ class Settings:
     upload_dir: str = os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "backend" / "uploads"))
     data_dir: str = str(PROJECT_ROOT / "data")
 
+    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
+    deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+
 
 settings = Settings()
