@@ -3,13 +3,21 @@ import datetime
 from pydantic import BaseModel
 
 
-class FileResponse(BaseModel):
+class FileUploadResponse(BaseModel):
     id: int
-    filename: str
+    display_name: str
+    description: str | None
     original_name: str
-    file_type: str
-    project_id: int | None
+    source_format: str
     size: int
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
+
+
+class FileListResponse(BaseModel):
+    files: list[FileUploadResponse]
+
+
+class FileDeleteResponse(BaseModel):
+    success: bool

@@ -1,33 +1,39 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.services import file_service, project_service
 
 router = APIRouter()
 
 
-@router.get("")
-def list_projects():
-    """TODO: list all projects"""
-    return {"projects": []}
+@router.get("", response_model=list[ProjectResponse])
+def list_projects(db: Session = Depends(get_db)):
+    return project_service.list_projects(db)
 
 
-@router.post("")
-def create_project():
-    """TODO: create a new project"""
-    return {"message": "not implemented"}
+@router.post("", response_model=ProjectResponse)
+def create_project(data: ProjectCreate, db: Session = Depends(get_db)):
+    return project_service.create_project(data, db)
 
 
-@router.get("/{project_id}")
-def get_project(project_id: int):
-    """TODO: get project by id"""
-    return {"project_id": project_id}
+@router.get("/{project_id}", response_model=ProjectResponse)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    return project_service.get_project(project_id, db)
 
 
-@router.put("/{project_id}")
-def update_project(project_id: int):
-    """TODO: update project"""
-    return {"project_id": project_id}
+@router.put("/{project_id}", response_model=ProjectResponse)
+def update_project(project_id: int, data: ProjectUpdate, db: Session = Depends(get_db)):
+    return project_service.update_project(project_id, data, db)
+
+
+@router.get("/{project_id}/requirements")
+def get_project_requirements(project_id: int, db: Session = Depends(get_db)):
+    return file_service.get_project_requirements(project_id, db)
 
 
 @router.delete("/{project_id}")
-def delete_project(project_id: int):
-    """TODO: delete project"""
-    return {"project_id": project_id}
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    success = project_service.delete_project(project_id, db)
+    return {"success": success}
