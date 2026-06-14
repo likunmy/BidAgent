@@ -75,7 +75,7 @@ make frontend-dev                              # 开发服务器 http://localhos
 |---|---|---|
 | `DATABASE_URL` | MySQL 连接字符串 | `mysql+pymysql://root:password@localhost:3306/bidagent` |
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | 必填 |
-| `DEEPSEEK_BASE_URL` | API 接口地址 | `https://api.deepseek.com/v1` |
+| `DEEPSEEK_BASE_URL` | API 接口地址 | `https://api.deepseek.com` |
 | `UPLOAD_DIR` | 转换文件存储目录 | `./uploads` |
 
 ## Agent 工作流程
