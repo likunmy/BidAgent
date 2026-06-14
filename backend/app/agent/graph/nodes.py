@@ -106,7 +106,8 @@ def parse_tender(state: BidState, config: RunnableConfig) -> dict:
     """Phase 1: load tender MD → LLM extracts requirements + outline."""
     cb = config.get("configurable", {}).get("event_callback")
     if cb:
-        cb("step", step_id="parse", name="解析招标文件", status="in_progress")
+        cb("step", step_id="parse", name="解析招标文件", status="in_progress",
+           total_steps=4, done_steps=0)
 
     llm = build_main_agent()
 
@@ -140,7 +141,8 @@ def parse_tender(state: BidState, config: RunnableConfig) -> dict:
 
     if cb:
         cb("step", step_id="parse", name="解析招标文件", status="completed",
-           detail=f"提取 {len(requirements)} 条要求，生成 {len(outline)} 个章节")
+           detail=f"提取 {len(requirements)} 条要求，生成 {len(outline)} 个章节",
+           total_steps=4, done_steps=1)
 
     return {
         "tender_content": tender_content,
@@ -180,7 +182,8 @@ def execute_batch(state: BidState, config: RunnableConfig) -> dict:
         return {}
 
     if cb:
-        cb("step", step_id="chapters", name=f"生成章节 (×{max_workers})", status="in_progress")
+        cb("step", step_id="chapters", name=f"生成章节 (×{max_workers})", status="in_progress",
+           total_steps=4, done_steps=1)
 
     updated = {c.id: c for c in state["chapters"]}
     docx_path = state.get("docx_path")
@@ -293,7 +296,8 @@ def execute_batch(state: BidState, config: RunnableConfig) -> dict:
 
     if cb:
         cb("step", step_id="chapters", name="章节生成完成", status="completed",
-           detail=f"已完成 {len(completed_ids)}/{len(state['chapters'])} 章")
+           detail=f"已完成 {len(completed_ids)}/{len(state['chapters'])} 章",
+           total_steps=4, done_steps=2)
 
     return {
         "chapters": list(updated.values()),
@@ -306,7 +310,8 @@ def final_review(state: BidState, config: RunnableConfig) -> dict:
     """Final review: compare original tender with final docx."""
     cb = config.get("configurable", {}).get("event_callback")
     if cb:
-        cb("step", step_id="final_review", name="终审", status="in_progress")
+        cb("step", step_id="final_review", name="终审", status="in_progress",
+           total_steps=4, done_steps=2)
 
     llm = build_final_review_agent()
     docx_text = _extract_docx_text(state.get("docx_path"))
@@ -330,7 +335,8 @@ def final_review(state: BidState, config: RunnableConfig) -> dict:
 
     if cb:
         cb("step", step_id="final_review", name="终审", status="completed" if is_pass else "failed",
-           detail="PASS" if is_pass else "存在问题，需修改")
+           detail="PASS" if is_pass else "存在问题，需修改",
+           total_steps=4, done_steps=3)
 
     return {
         "final_review_result": "PASS" if is_pass else result,

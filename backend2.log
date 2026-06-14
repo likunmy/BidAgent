@@ -1,0 +1,13 @@
+INFO:     Started server process [24196]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:7931 - "GET /api/v1/projects HTTP/1.1" 200 OK
+INFO:     [_run_bid_graph] Thread started for project 1
+INFO:     127.0.0.1:7934 - "GET /api/v1/projects/1/generate/stream HTTP/1.1" 200 OK
+INFO:     [_emit] project=1 type=step step_id=init
+INFO:     [_run_bid_graph] init emitted for project 1
+INFO:     [_emit] project=1 type=step step_id=init
+INFO:     [_emit] project=1 type=task_init step_id=?
+INFO:     [_emit] project=1 type=step step_id=parse
+INFO:     [_emit] project=1 type=error step_id=?

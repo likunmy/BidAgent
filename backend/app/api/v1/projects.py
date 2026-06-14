@@ -17,25 +17,30 @@ router = APIRouter()
 
 # Per-project event queues for SSE streaming
 _project_queues: dict[int, asyncio.Queue] = {}
+_project_loops: dict[int, asyncio.AbstractEventLoop] = {}
 _queue_lock = threading.Lock()
 
 
 def _get_or_create_queue(project_id: int) -> asyncio.Queue:
-    """Get or create an event queue for a project (thread-safe)."""
+    """Get or create an event queue for a project (thread-safe).
+    Must be called from the async event loop thread.
+    """
     with _queue_lock:
         if project_id not in _project_queues:
             _project_queues[project_id] = asyncio.Queue()
+            _project_loops[project_id] = asyncio.get_running_loop()
         return _project_queues[project_id]
 
 
 def _emit(project_id: int, event_type: str, **data):
-    """Thread-safe: push an event to the project's async queue."""
-    queue = _project_queues.get(project_id)
-    if queue is None:
-        return
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
+    """Thread-safe: push an event to the project's async queue.
+    Uses the stored event loop reference captured at queue creation,
+    so it works from background threads even in Python 3.14+.
+    """
+    with _queue_lock:
+        queue = _project_queues.get(project_id)
+        loop = _project_loops.get(project_id)
+    if queue is None or loop is None:
         return
     payload = {
         "type": event_type,
@@ -101,6 +106,9 @@ async def stream_generation(project_id: int, db: Session = Depends(get_db)):
                 if event_type == "error":
                     yield f"event: error\ndata: {json.dumps(event)}\n\n"
                     break
+                if event_type in ("task_init",):
+                    yield f"event: {event_type}\ndata: {json.dumps(event)}\n\n"
+                    continue
 
                 yield f"event: step\ndata: {json.dumps(event)}\n\n"
 
@@ -109,6 +117,7 @@ async def stream_generation(project_id: int, db: Session = Depends(get_db)):
         finally:
             with _queue_lock:
                 _project_queues.pop(project_id, None)
+                _project_loops.pop(project_id, None)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -153,22 +162,33 @@ def _run_bid_graph(project_id: int):
 
         _emit(project_id, "step", step_id="init", name="初始化完成", status="completed")
 
+        # Emit task_init with the list of all main steps for frontend to build timeline
+        _emit(project_id, "task_init", steps=[
+            {"id": "parse", "name": "解析招标文件", "description": "读取并解析招标文件，提取关键要求和评分标准"},
+            {"id": "chapters", "name": "编写章节内容", "description": "根据招标要求编写技术方案、分析资质、审核商务条款等全部章节"},
+            {"id": "final_review", "name": "终审校验", "description": "对标书进行最终审核校验"},
+            {"id": "done", "name": "生成最终标书", "description": "整合所有内容，生成完整的标书文档"},
+        ])
+
         # Run the graph
         result = bid_graph.invoke(initial_state, config)
 
+        total_steps = 4
         if result.get("final_review_result") == "PASS":
             _emit(project_id, "complete",
                   step_id="done",
                   name="标书生成完成",
                   status="completed",
-                  file_path=result.get("docx_path", ""))
+                  file_path=result.get("docx_path", ""),
+                  total_steps=total_steps, done_steps=total_steps)
         else:
             _emit(project_id, "complete",
                   step_id="done",
                   name="标书生成结束",
                   status="completed",
                   note="终审存在问题，请检查后手动调整",
-                  file_path=result.get("docx_path", ""))
+                  file_path=result.get("docx_path", ""),
+                  total_steps=total_steps, done_steps=total_steps)
 
     except Exception as e:
         _emit(project_id, "error", message=f"生成失败: {str(e)}")

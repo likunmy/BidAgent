@@ -121,6 +121,14 @@
               </n-button>
             </div>
 
+            <!-- Overall progress bar -->
+            <div v-if="steps.length" class="overall-progress">
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+              </div>
+              <span class="progress-label">{{ progressText }}</span>
+            </div>
+
             <!-- Timeline empty: no tender document -->
             <div v-if="!tenderFile" class="section-empty">
               <div class="empty-icon"><n-icon size="36" color="#C0BAB0"><DocumentOutline /></n-icon></div>
@@ -406,6 +414,13 @@ const progressText = computed(() => {
   return `${done} / ${total}`
 })
 
+const progressPercent = computed(() => {
+  const total = steps.value.length
+  if (!total) return 0
+  const done = steps.value.filter(s => s.status === 'completed').length
+  return total > 0 ? Math.round(done / total * 100) : 0
+})
+
 function connectStream(projectId) {
   if (eventSource) eventSource.close()
   isStreaming.value = true
@@ -413,16 +428,61 @@ function connectStream(projectId) {
 
   eventSource = new EventSource(`/api/v1/projects/${projectId}/generate/stream`)
 
-  eventSource.addEventListener('step', (e) => {
+  // Receive the list of all steps upfront
+  eventSource.addEventListener('task_init', (e) => {
     try {
       const data = JSON.parse(e.data)
-      steps.value = steps.value.map(s =>
-        s.id === data.step_id ? { ...s, ...data } : s
-      )
+      if (data.steps) {
+        steps.value = data.steps.map(s => ({
+          id: s.id,
+          name: s.name,
+          description: s.description || '',
+          status: 'pending',
+          timestamp: null,
+          duration: null,
+        }))
+      }
     } catch {}
   })
 
-  eventSource.addEventListener('complete', () => {
+  eventSource.addEventListener('step', (e) => {
+    try {
+      const data = JSON.parse(e.data)
+      const idx = steps.value.findIndex(s => s.id === data.step_id)
+      if (idx >= 0) {
+        steps.value[idx] = { ...steps.value[idx], ...data }
+      } else if (data.step_id) {
+        // Dynamically add step if not yet known (backup if task_init hasn't arrived)
+        steps.value.push({
+          id: data.step_id,
+          name: data.name || data.step_id,
+          description: data.detail || '',
+          status: data.status || 'pending',
+          timestamp: data.timestamp || null,
+          duration: null,
+        })
+      }
+    } catch {}
+  })
+
+  eventSource.addEventListener('complete', (e) => {
+    try {
+      const data = JSON.parse(e.data)
+      // Mark or create the done step as completed
+      const idx = steps.value.findIndex(s => s.id === 'done')
+      if (idx >= 0) {
+        steps.value[idx] = { ...steps.value[idx], status: 'completed', ...data }
+      } else {
+        steps.value.push({
+          id: 'done',
+          name: data.name || '生成完毕',
+          description: data.detail || '',
+          status: 'completed',
+          timestamp: data.timestamp || null,
+          duration: null,
+        })
+      }
+    } catch {}
     isStreaming.value = false
     generationComplete.value = true
     eventSource?.close()
@@ -449,13 +509,7 @@ function disconnectStream() {
 }
 
 function startGeneration() {
-  steps.value = [
-    { id: 'parse', name: '解析招标文件', description: '读取并解析招标文件，提取关键要求和评分标准', status: 'pending', timestamp: null, duration: null },
-    { id: 'analyze', name: '分析资质文件', description: '提取公司资质、业绩和人员信息', status: 'pending', timestamp: null, duration: null },
-    { id: 'tech', name: '编写技术方案', description: '根据招标要求编写技术方案章节', status: 'pending', timestamp: null, duration: null },
-    { id: 'business', name: '审核商务标书', description: '审核商务条款、报价和资质文件', status: 'pending', timestamp: null, duration: null },
-    { id: 'final', name: '生成最终标书', description: '整合所有内容，生成完整的标书文档', status: 'pending', timestamp: null, duration: null },
-  ]
+  steps.value = []
   connectStream(Number(route.params.id))
 }
 
@@ -737,6 +791,32 @@ onUnmounted(() => {
 /* =============================================
    Timeline
    ============================================= */
+.overall-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+.progress-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #F0EDE7;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: #22A67E;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 .timeline-list { position: relative; padding: 8px 0; }
 
 .timeline-list::before {

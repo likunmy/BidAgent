@@ -23,8 +23,10 @@ def create_llm(**kwargs) -> BaseChatModel:
 
 def _make_tool(fn, input_model):
     """Wrap a function + pydantic model as a langchain tool."""
-    @tool(args_schema=input_model)
+    desc = (input_model.__doc__ or fn.__doc__ or "").strip()
+    @tool(args_schema=input_model, description=desc)
     def wrapper(**kwargs):
+        """Execute the wrapped tool function."""
         return fn(input_model(**kwargs))
     return wrapper
 
